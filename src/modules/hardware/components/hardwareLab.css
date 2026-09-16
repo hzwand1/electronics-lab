@@ -238,3 +238,169 @@ text.hw-rail-gnd {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 50;
 }
+
+/* === 右键上下文菜单 === */
+.hw-context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 168px;
+  padding: 6px;
+  background: rgba(28, 31, 40, 0.98);
+  border: 1px solid #3a4152;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.hw-context-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: #d6dae3;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.hw-context-item:hover {
+  background: #333a4a;
+}
+.hw-context-item-danger:hover {
+  background: rgba(211, 72, 72, 0.22);
+  color: #ff9a9a;
+}
+
+/* === 导线属性面板 === */
+.hw-props-panel {
+  position: fixed;
+  top: 84px;
+  right: 20px;
+  z-index: 90;
+  width: 280px;
+  padding: 14px 16px;
+  background: rgba(24, 27, 35, 0.98);
+  border: 1px solid #3a4152;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #d6dae3;
+}
+
+.hw-props-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hw-props-close {
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 1;
+  color: #aab2c4;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.hw-props-close:hover {
+  background: #333a4a;
+  color: #fff;
+}
+
+.hw-props-group {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.hw-props-group-title {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #8a93a6;
+}
+.hw-props-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 3px 0;
+}
+.hw-props-label {
+  width: 42px;
+  flex: none;
+  font-size: 12px;
+  color: #8a93a6;
+}
+.hw-props-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #b9c6ff;
+  word-break: break-all;
+}
+.hw-props-node {
+  color: #8fd0a0;
+}
+.hw-props-note {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #7e879a;
+}
+
+/* === 清空确认模态 === */
+.hw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.55);
+}
+.hw-modal {
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  padding: 20px 22px;
+  background: #1d2029;
+  border: 1px solid #3a4152;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+}
+.hw-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #eceff5;
+}
+.hw-modal-text {
+  margin: 10px 0 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #98a1b5;
+}
+.hw-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.hw-modal-btn {
+  min-width: 64px;
+  padding: 7px 16px;
+  font-size: 13px;
+  color: #d6dae3;
+  background: #2a2f3c;
+  border: 1px solid #3a4152;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.hw-modal-btn:hover {
+  background: #343a49;
+}
+.hw-modal-btn-danger {
+  color: #ffb3b3;
+  background: rgba(201, 80, 78, 0.22);
+  border-color: rgba(201, 80, 78, 0.5);
+}
+.hw-modal-btn-danger:hover {
+  background: rgba(201, 80, 78, 0.34);
+}

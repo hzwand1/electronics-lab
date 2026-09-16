@@ -174,6 +174,72 @@ describe('HardwareEngine — 序列化（20）', () => {
   });
 });
 
+describe('HardwareEngine — 删除/清空后的连线生命周期', () => {
+  it('删除一根后其他导线保留（wire-002 删除，001/003 保留）', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A1', 'A2').state; // TL-1 ↔ TL-2
+    s = engine.addWire(s, 'B3', 'B4').state; // TL-3 ↔ TL-4
+    s = engine.addWire(s, 'C5', 'C6').state; // TL-5 ↔ TL-6
+    const target = s.wires.find((w) => w.startNodeId === 'TL-3' && w.endNodeId === 'TL-4')!.id;
+    const after = engine.removeWire(s, target);
+    const pairs = after.wires.map((w) => `${w.startNodeId}::${w.endNodeId}`).sort();
+    expect(pairs).toEqual(['TL-1::TL-2', 'TL-5::TL-6']);
+  });
+
+  it('删除不存在的 wireId 不报错且不改动其他数据', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A1', 'A2').state;
+    const after = engine.removeWire(s, 'W::NO::SUCH');
+    expect(after).toBe(s);
+    expect(after.wires).toHaveLength(1);
+  });
+
+  it('同一根导线删除两次不会破坏状态', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A1', 'A2').state;
+    const id = s.wires[0].id;
+    const once = engine.removeWire(s, id);
+    const twice = engine.removeWire(once, id);
+    expect(once.wires).toHaveLength(0);
+    expect(twice.wires).toHaveLength(0);
+  });
+
+  it('删除导线后仍可创建同一节点对的新导线', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A5', 'A10').state;
+    s = engine.removeWire(s, s.wires[0].id);
+    const re = engine.addWire(s, 'A5', 'A10');
+    expect(re.status).toBe('created');
+    expect(re.state.wires).toHaveLength(1);
+  });
+
+  it('删除导线不影响 self-node 检查', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A5', 'A10').state;
+    s = engine.removeWire(s, s.wires[0].id);
+    expect(engine.addWire(s, 'A5', 'E5').status).toBe('self-node');
+  });
+
+  it('删除导线不影响 duplicate 检查（剩余连接仍判重）', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A5', 'A10').state;
+    // 未删除该连接时，用同节点别的孔重复连接仍判 duplicate
+    expect(engine.addWire(s, 'B5', 'B10').status).toBe('duplicate');
+  });
+
+  it('clearWires 后可正常创建新导线；连续 clearWires 不报错', () => {
+    let s = engine.createInitialState();
+    s = engine.addWire(s, 'A1', 'A2').state;
+    s = engine.addWire(s, 'A3', 'A4').state;
+    s = engine.clearWires(s);
+    expect(s.wires).toHaveLength(0);
+    const again = engine.clearWires(s);
+    expect(again).toBe(s);
+    const re = engine.addWire(s, 'A1', 'A2');
+    expect(re.status).toBe('created');
+  });
+});
+
 describe('HardwareEngine — 纯度（19）', () => {
   it('引擎源码不依赖 React / Zustand / DOM / SVG', () => {
     const src = engineSource;

@@ -76,8 +76,15 @@ function HoleViewInner({
       onMouseEnter={() => onEnter(id)}
       onMouseLeave={onLeave}
       onMouseDown={(e) => {
+        // 仅左键用于连线；右键不触发连线、不改变 pending
+        if (e.button !== 0) return;
         e.stopPropagation();
         onSelect(id);
+      }}
+      onContextMenu={(e) => {
+        // 孔上右键：阻止浏览器默认菜单，不创建/取消任何连线
+        e.preventDefault();
+        e.stopPropagation();
       }}
     >
       <title>{`${id}  →  节点 ${nodeLabel}`}</title>
