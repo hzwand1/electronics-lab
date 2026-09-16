@@ -62,6 +62,11 @@ const PIN_LAYOUTS: Record<ComponentType, readonly PinLayout[]> = {
   ground: [
     { name: 'OUT', direction: 'out', position: { x: 1, y: 2 } },
   ],
+  // S2-2 UI 验证用 generic：宽 3 格 × 高 2 格，两端 passive 引脚
+  generic: [
+    { name: '1', direction: 'passive', position: { x: 0, y: 1 } },
+    { name: '2', direction: 'passive', position: { x: 3, y: 1 } },
+  ],
 };
 
 /** 电阻默认阻值 */
@@ -98,6 +103,8 @@ export function defaultConfigFor(type: ComponentType): ComponentConfig {
       return { kind: 'power' };
     case 'ground':
       return { kind: 'ground' };
+    case 'generic':
+      return { kind: 'generic' };
   }
 }
 

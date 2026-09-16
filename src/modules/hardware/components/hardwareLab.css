@@ -404,3 +404,145 @@ text.hw-rail-gnd {
 .hw-modal-btn-danger:hover {
   background: rgba(201, 80, 78, 0.34);
 }
+
+/* === S2-2：主体布局（元件库 + 画布） === */
+.hw-lab-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* === S2-2：元件库 === */
+.hw-parts-library {
+  flex-shrink: 0;
+  width: 200px;
+  padding: 14px 12px;
+  background: #161922;
+  border: 1px solid #2c3140;
+  border-radius: 10px;
+}
+.hw-parts-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c9d1e0;
+  letter-spacing: 0.5px;
+}
+.hw-part-group {
+  margin-bottom: 10px;
+}
+.hw-part-group-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #6b7388;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.hw-part-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: #1d2029;
+  border: 1px solid #2c3140;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hw-part-item:hover {
+  border-color: #4a6fa5;
+  background: #222632;
+}
+.hw-part-item-active {
+  border-color: #5b8def;
+  background: rgba(91, 141, 239, 0.14);
+}
+.hw-part-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hw-part-icon-body {
+  fill: #2a3040;
+  stroke: #5b8def;
+  stroke-width: 1.5;
+}
+.hw-part-icon-pin {
+  fill: #c9d1e0;
+}
+.hw-part-name {
+  font-size: 12.5px;
+  color: #d6dae3;
+}
+.hw-parts-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6b7388;
+}
+
+/* === S2-2：元件 SVG === */
+.hw-component {
+  cursor: grab;
+}
+.hw-component-body {
+  fill: #252a38;
+  stroke: #4a5268;
+  stroke-width: 1.5;
+  transition: stroke 0.12s;
+}
+.hw-component-body:hover {
+  stroke: #6b8fff;
+}
+.hw-component-body-selected {
+  stroke: #5b8def;
+  stroke-width: 2;
+}
+.hw-component-sel {
+  fill: none;
+  stroke: #5b8def;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+  pointer-events: none;
+}
+.hw-component-label {
+  font-size: 9px;
+  font-weight: 600;
+  fill: #8fa3c8;
+  pointer-events: none;
+  user-select: none;
+}
+.hw-component-pin {
+  fill: #c9d1e0;
+  stroke: #1a1d26;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.12s;
+}
+.hw-component-pin:hover {
+  fill: #5b8def;
+}
+.hw-component-pin-label {
+  font-size: 8px;
+  fill: #6b7388;
+  pointer-events: none;
+  user-select: none;
+}
+.hw-component-ghost {
+  fill: rgba(91, 141, 239, 0.2);
+  stroke: #5b8def;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+/* === S2-2：右键菜单危险按钮 === */
+.hw-context-menu-item-danger {
+  color: #ff9b9b;
+}
+.hw-context-menu-item-danger:hover {
+  background: rgba(201, 80, 78, 0.22);
+}

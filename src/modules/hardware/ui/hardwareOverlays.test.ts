@@ -43,7 +43,7 @@ describe('hardwareOverlays — 右键菜单（23~26/32~34 的逻辑部分）', (
       { type: 'openWireMenu', wireId: 'W1', pos: { x: 1, y: 1 } },
       { type: 'openWireMenu', wireId: 'W2', pos: { x: 2, y: 2 } },
     );
-    expect(s.contextMenu?.target.wireId).toBe('W2');
+    expect((s.contextMenu?.target as { wireId: string }).wireId).toBe('W2');
     expect(s.contextMenu?.pos).toEqual({ x: 2, y: 2 });
   });
 
@@ -54,7 +54,7 @@ describe('hardwareOverlays — 右键菜单（23~26/32~34 的逻辑部分）', (
       { type: 'openWireMenu', wireId: 'W2', pos: { x: 0, y: 0 } },
     );
     expect(s.wireProperties).toBeNull();
-    expect(s.contextMenu?.target.wireId).toBe('W2');
+    expect((s.contextMenu?.target as { wireId: string }).wireId).toBe('W2');
   });
 
   it('closeContextMenu 关闭菜单；无菜单时幂等返回同一引用', () => {

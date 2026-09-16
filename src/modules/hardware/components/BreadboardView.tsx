@@ -1,25 +1,37 @@
 /**
- * Hardware Lab — 面包板视图（阶段 1）
+ * Hardware Lab — 面包板视图（S2-2：Component UI 基础层）
  *
- * 交互：
+ * Stage 1 交互（完整保留）：
  *  - 悬停孔：高亮当前孔 + 同一电气节点的所有孔（O(1) 查表，不重算整板）
  *  - 点击一个孔作为导线起点，再点另一个节点的孔完成 Node ↔ Node 连接
  *  - 同节点点击 = 无操作；重复连接不创建
  *  - 左键点击导线选中，Delete/Backspace 删除；右键导线打开上下文菜单（属性/删除）
- *  - “清空导线”需二次确认；空白左键取消选择/起点，空白右键不弹浏览器菜单
+ *  - "清空导线"需二次确认；空白左键取消选择/起点，空白右键不弹浏览器菜单
  *  - 鼠标在面包板区域滚动滚轮即缩放（无需 Ctrl），滚动条平移
  *
+ * S2-2 新增：
+ *  - Parts Library 选择 Generic Component → placement 模式 → 空白点击放置
+ *  - 元件选择（点击主体或 Pin 均选中所属 Component）
+ *  - 元件拖拽移动（只改 position，绝不改变 pins.nodeId）
+ *  - R 键旋转选中元件（只改 rotation）
+ *  - Delete / Backspace / 右键菜单删除元件
+ *  - 元件右键菜单（删除元件；属性面板留待 S2-10）
+ *
  * 性能：孔组件 React.memo；hover 只改变相关节点（终端 5 孔 / 电源 25 孔）。
+ * 元件渲染在同一 <g transform> 组内，自动跟随缩放，无需第二套坐标系统。
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHardwareStore } from '../store/hardwareStore';
 import { BreadboardHole } from '../types/hardwareTypes';
+import type { ComponentType } from '../types/componentTypes';
 import { HoleView, HoleCategory } from './HoleView';
 import { WireContextMenu } from './WireContextMenu';
 import { WirePropertiesPanel } from './WirePropertiesPanel';
 import { ConfirmClearDialog } from './ConfirmClearDialog';
+import { GenericComponent } from './GenericComponent';
+import { ComponentContextMenu } from './ComponentContextMenu';
 import {
   initialOverlays,
   overlaysReducer,
@@ -35,18 +47,30 @@ interface PendingStart {
   nodeId: string;
 }
 
+interface BreadboardViewProps {
+  /** 当前 placement 模式的元件类型；null = 正常模式 */
+  placementType: ComponentType | null;
+  /** placement 完成或取消时回调（由 HardwareLab 重置 placementType） */
+  onPlacementDone: () => void;
+}
+
 function manhattanPath(x1: number, y1: number, x2: number, y2: number): string {
   const midX = Math.round((x1 + x2) / 2);
   return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
 }
 
-export function BreadboardView() {
+export function BreadboardView({ placementType, onPlacementDone }: BreadboardViewProps) {
   const breadboard = useHardwareStore((s) => s.breadboard);
   const index = useHardwareStore((s) => s.index);
   const wires = useHardwareStore((s) => s.wires);
+  const components = useHardwareStore((s) => s.components);
   const addWireByHoles = useHardwareStore((s) => s.addWireByHoles);
   const removeWire = useHardwareStore((s) => s.removeWire);
   const clearWires = useHardwareStore((s) => s.clearWires);
+  const addComponent = useHardwareStore((s) => s.addComponent);
+  const removeComponent = useHardwareStore((s) => s.removeComponent);
+  const moveComponent = useHardwareStore((s) => s.moveComponent);
+  const rotateComponent = useHardwareStore((s) => s.rotateComponent);
 
   const { layout } = breadboard;
   const pitch = layout.pitch;
@@ -65,6 +89,8 @@ export function BreadboardView() {
   const [mouseWorld, setMouseWorld] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [message, setMessage] = useState<string | null>(null);
+  // S2-2：正在拖拽的元件 id
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const pendingRef = useRef<PendingStart | null>(null);
   pendingRef.current = pending;
@@ -72,6 +98,16 @@ export function BreadboardView() {
   overlaysRef.current = overlays;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const msgTimer = useRef<number | null>(null);
+  // S2-2 refs
+  const draggingRef = useRef<string | null>(null);
+  draggingRef.current = draggingId;
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const placementTypeRef = useRef(placementType);
+  placementTypeRef.current = placementType;
+  const onPlacementDoneRef = useRef(onPlacementDone);
+  onPlacementDoneRef.current = onPlacementDone;
+  const selectedComponentIdRef = useRef<string | null>(null);
+  selectedComponentIdRef.current = overlays.selectedComponentId;
 
   const flash = useCallback((text: string) => {
     setMessage(text);
@@ -86,6 +122,32 @@ export function BreadboardView() {
       dispatch({ type: 'onWireDeleted', wireId });
     },
     [removeWire],
+  );
+
+  // S2-2：删除元件统一入口（Store.removeComponent + 覆盖层同步）
+  const deleteComponent = useCallback(
+    (componentId: string) => {
+      removeComponent(componentId);
+      dispatch({ type: 'onComponentDeleted', componentId });
+    },
+    [removeComponent],
+  );
+  const deleteComponentRef = useRef(deleteComponent);
+  deleteComponentRef.current = deleteComponent;
+  const rotateComponentRef = useRef(rotateComponent);
+  rotateComponentRef.current = rotateComponent;
+
+  // 客户端坐标 → 面包板世界坐标（像素，已扣除 PAD，与孔/元件同一坐标系）
+  const clientToWorld = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      if (!svgRef.current) return null;
+      const rect = svgRef.current.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) / zoom - PAD_X,
+        y: (e.clientY - rect.top) / zoom - PAD_Y,
+      };
+    },
+    [zoom],
   );
 
   // 孔按种类分组（只计算一次）
@@ -160,7 +222,66 @@ export function BreadboardView() {
     [index.holeToNode, addWireByHoles, flash],
   );
 
-  // 键盘：Esc 按优先级关闭覆盖层/取消起点；Delete/Backspace 删除选中导线（统一走 deleteWire）
+  // S2-2：元件鼠标按下 —— 选中 + 开始拖拽（记录鼠标相对元件左上角的偏移）
+  const handleComponentMouseDown = useCallback(
+    (componentId: string, e: React.MouseEvent) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      dispatch({ type: 'selectComponent', componentId });
+      dispatch({ type: 'closeContextMenu' });
+      setPending(null);
+      const world = clientToWorld(e);
+      if (!world) return;
+      const comp = components.find((c) => c.id === componentId);
+      if (!comp) return;
+      dragOffsetRef.current = {
+        x: world.x - comp.position.x * pitch,
+        y: world.y - comp.position.y * pitch,
+      };
+      // 同步设置 ref，避免 React 异步渲染导致首次 mousemove 时 draggingRef 仍为 null
+      draggingRef.current = componentId;
+      setDraggingId(componentId);
+    },
+    [components, pitch, clientToWorld],
+  );
+
+  // S2-2：元件右键 —— 阻止浏览器默认菜单，打开元件上下文菜单
+  const handleComponentContextMenu = useCallback(
+    (componentId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dispatch({
+        type: 'openComponentMenu',
+        componentId,
+        pos: { x: e.clientX, y: e.clientY },
+      });
+    },
+    [],
+  );
+
+  // S2-2：元件拖拽 —— window 级 mousemove/mouseup（避免 SVG 元素丢失鼠标捕获）
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const world = clientToWorld(e);
+      if (!world) return;
+      const gridX = (world.x - dragOffsetRef.current.x) / pitch;
+      const gridY = (world.y - dragOffsetRef.current.y) / pitch;
+      moveComponent(draggingRef.current, { x: gridX, y: gridY });
+    };
+    const onUp = () => {
+      if (draggingRef.current) setDraggingId(null);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [clientToWorld, moveComponent, pitch]);
+
+  // 键盘：Esc 按优先级关闭覆盖层/取消起点/取消 placement；
+  // R 旋转选中元件；Delete/Backspace 删除选中元件（优先）或选中导线
   const deleteWireRef = useRef(deleteWire);
   deleteWireRef.current = deleteWire;
   useEffect(() => {
@@ -176,8 +297,24 @@ export function BreadboardView() {
           dispatch({ type: 'closeContextMenu' });
         } else if (ov.wireProperties) {
           dispatch({ type: 'closeWireProperties' });
+        } else if (placementTypeRef.current) {
+          onPlacementDoneRef.current();
         } else {
           setPending(null);
+        }
+        return;
+      }
+
+      // R 键旋转选中元件
+      if (e.key === 'r' || e.key === 'R') {
+        if (
+          selectedComponentIdRef.current &&
+          !ov.confirmClear &&
+          !ov.contextMenu &&
+          !ov.wireProperties
+        ) {
+          e.preventDefault();
+          rotateComponentRef.current(selectedComponentIdRef.current);
         }
         return;
       }
@@ -186,11 +323,16 @@ export function BreadboardView() {
         (e.key === 'Delete' || e.key === 'Backspace') &&
         !ov.confirmClear &&
         !ov.contextMenu &&
-        !ov.wireProperties &&
-        ov.selectedWireId
+        !ov.wireProperties
       ) {
-        e.preventDefault();
-        deleteWireRef.current(ov.selectedWireId);
+        // 元件删除优先于导线删除
+        if (selectedComponentIdRef.current) {
+          e.preventDefault();
+          deleteComponentRef.current(selectedComponentIdRef.current);
+        } else if (ov.selectedWireId) {
+          e.preventDefault();
+          deleteWireRef.current(ov.selectedWireId);
+        }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -209,16 +351,21 @@ export function BreadboardView() {
     return () => window.removeEventListener('mousedown', onDocMouseDown);
   }, []);
 
-  // 鼠标移动：换算世界坐标用于导线预览
+  // 鼠标移动：换算世界坐标用于导线预览 / placement ghost
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const handleSvgMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!pendingRef.current || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    setMouseWorld({
-      x: (e.clientX - rect.left) / zoom - PAD_X,
-      y: (e.clientY - rect.top) / zoom - PAD_Y,
-    });
-  }, [zoom]);
+  const handleSvgMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!svgRef.current) return;
+      // 导线预览或 placement 模式下才需要追踪鼠标世界坐标
+      if (!pendingRef.current && !placementTypeRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      setMouseWorld({
+        x: (e.clientX - rect.left) / zoom - PAD_X,
+        y: (e.clientY - rect.top) / zoom - PAD_Y,
+      });
+    },
+    [zoom],
+  );
 
   // 实际行为：鼠标在面包板 SVG 区域滚动滚轮即缩放（不检查 ctrlKey），范围 0.55~2.2。
   const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
@@ -245,13 +392,21 @@ export function BreadboardView() {
     ? wires.find((w) => w.id === overlays.wireProperties?.wireId) ?? null
     : null;
 
+  // S2-2：右键菜单当前指向的元件（如果是 component 类型）
+  const contextComponentId =
+    overlays.contextMenu?.target.kind === 'component'
+      ? overlays.contextMenu.target.componentId
+      : null;
+
   return (
     <div className="hw-board-scroll">
       <div className="hw-toolbar">
         <span className="hw-toolbar-hint">
           {pending
             ? '起点已选：再点击另一个节点的孔完成连接（Esc 取消）'
-            : '点击一个孔开始连线；右键导线查看属性 / 删除；悬停查看同一电气节点'}
+            : placementType
+            ? '放置模式：点击面包板空白处放置元件（Esc 取消）'
+            : '点击一个孔开始连线；右键导线/元件查看操作；悬停查看同一电气节点'}
         </span>
         <div className="hw-toolbar-actions">
           <button onClick={() => setZoom((z) => Math.max(ZOOM_MIN, +(z / 1.15).toFixed(2)))}>－</button>
@@ -276,8 +431,17 @@ export function BreadboardView() {
           onMouseMove={handleSvgMouseMove}
           onWheel={handleWheel}
           onMouseDown={(e) => {
-            // 仅响应左键空白：取消选中与起点、关闭菜单；右键空白交给 onContextMenu
+            // 仅响应左键空白：placement 模式创建元件，否则取消选中与起点、关闭菜单
             if (e.button !== 0) return;
+            if (placementType) {
+              const world = clientToWorld(e);
+              if (world) {
+                addComponent(placementType, { x: world.x / pitch, y: world.y / pitch });
+                flash('已放置元件');
+              }
+              onPlacementDone();
+              return;
+            }
             dispatch({ type: 'clearSelection' });
             dispatch({ type: 'closeContextMenu' });
             setPending(null);
@@ -393,6 +557,7 @@ export function BreadboardView() {
                   onEnter={handleEnter}
                   onLeave={handleLeave}
                   onSelect={handleHoleSelect}
+                  placementActive={!!placementType}
                 />
               ))}
               {terminalHoles.map((hole) => (
@@ -406,9 +571,33 @@ export function BreadboardView() {
                   onEnter={handleEnter}
                   onLeave={handleLeave}
                   onSelect={handleHoleSelect}
+                  placementActive={!!placementType}
                 />
               ))}
             </g>
+
+            {/* S2-2：元件层（在导线和孔之上；拖拽时自动跟随） */}
+            <g>
+              {components.map((c) => (
+                <GenericComponent
+                  key={c.id}
+                  component={c}
+                  selected={overlays.selectedComponentId === c.id}
+                  pitch={pitch}
+                  onMouseDown={handleComponentMouseDown}
+                  onContextMenu={handleComponentContextMenu}
+                />
+              ))}
+            </g>
+
+            {/* S2-2：placement ghost（半透明预览，跟随鼠标） */}
+            {placementType && mouseWorld && (
+              <g transform={`translate(${mouseWorld.x}, ${mouseWorld.y})`} opacity={0.45}>
+                <rect x={0} y={0} width={3 * pitch} height={2 * pitch} rx={4} className="hw-component-ghost" />
+                <circle cx={0} cy={pitch} r={5} className="hw-component-pin" />
+                <circle cx={3 * pitch} cy={pitch} r={5} className="hw-component-pin" />
+              </g>
+            )}
           </g>
         </svg>
       </div>
@@ -416,13 +605,26 @@ export function BreadboardView() {
       {message && <div className="hw-flash-msg">{message}</div>}
 
       {/* 覆盖层：portal 到 body，避免祖先 transform/backdrop-filter 影响 fixed 定位 */}
-      {overlays.contextMenu &&
+      {overlays.contextMenu?.target.kind === 'wire' &&
         createPortal(
           <WireContextMenu
             ref={menuRef}
             menu={overlays.contextMenu}
             onProperties={(wireId) => dispatch({ type: 'openWireProperties', wireId })}
             onDelete={deleteWire}
+          />,
+          document.body,
+        )}
+
+      {/* S2-2：元件右键菜单（与导线菜单共用 menuRef，同时至多一个） */}
+      {contextComponentId &&
+        overlays.contextMenu &&
+        createPortal(
+          <ComponentContextMenu
+            ref={menuRef}
+            componentId={contextComponentId}
+            pos={overlays.contextMenu.pos}
+            onDelete={deleteComponent}
           />,
           document.body,
         )}

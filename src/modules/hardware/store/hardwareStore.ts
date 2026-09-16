@@ -19,7 +19,7 @@ import {
   GridPoint,
   HardwareWire,
 } from '../types/hardwareTypes';
-import type { Component, ComponentType } from '../types/componentTypes';
+import type { Component, ComponentRotation, ComponentType } from '../types/componentTypes';
 import { buildBreadboardIndex, createBreadboard } from '../engine/breadboardFactory';
 import { HardwareEngine, HARDWARE_STATE_VERSION } from '../engine/hardwareEngine';
 import { createComponent } from '../engine/componentFactory';
@@ -56,6 +56,10 @@ interface HardwareStore {
   addComponent: (type: ComponentType, position: GridPoint) => string;
   /** 删除元件（连同其 Pins），不删 Node / Wire / 其他元件 */
   removeComponent: (componentId: string) => void;
+  /** 移动元件：只改 position，绝不改变 pins.nodeId（视觉位置 ≠ 电气连接） */
+  moveComponent: (componentId: string, position: GridPoint) => void;
+  /** 旋转元件 90°：只改 rotation，绝不改变 pins.nodeId */
+  rotateComponent: (componentId: string) => void;
   /** 将指定 Pin 连接到 Node，返回连接状态（委托纯 TS connectivity） */
   connectPinToNode: (pinId: string, nodeId: string) => ConnectStatus;
   /** 断开指定 Pin，返回连接状态 */
@@ -101,6 +105,25 @@ export const useHardwareStore = create<HardwareStore>()(
         if (result.status === 'ok') {
           set({ components: result.components });
         }
+      },
+
+      // S2-2：移动 / 旋转只改物理属性，绝不触碰 pins.nodeId（电气连接与视觉位置分离）
+      moveComponent: (componentId, position) => {
+        set({
+          components: get().components.map((c) =>
+            c.id === componentId ? { ...c, position: { x: position.x, y: position.y } } : c,
+          ),
+        });
+      },
+
+      rotateComponent: (componentId) => {
+        set({
+          components: get().components.map((c) =>
+            c.id === componentId
+              ? { ...c, rotation: (((c.rotation + 90) % 360) as ComponentRotation) }
+              : c,
+          ),
+        });
       },
 
       connectPinToNode: (pinId, nodeId) => {

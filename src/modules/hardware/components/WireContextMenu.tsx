@@ -21,6 +21,8 @@ const EDGE = 8;
 
 export const WireContextMenu = forwardRef<HTMLDivElement, WireContextMenuProps>(
   function WireContextMenu({ menu, onProperties, onDelete }, ref) {
+    // 类型守卫：本组件只处理 wire 目标（component 菜单由 ComponentContextMenu 渲染）
+    if (menu.target.kind !== 'wire') return null;
     // 防止菜单超出视口
     const x = Math.min(menu.pos.x, window.innerWidth - MENU_W - EDGE);
     const y = Math.min(menu.pos.y, window.innerHeight - MENU_H - EDGE);

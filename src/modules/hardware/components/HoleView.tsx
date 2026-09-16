@@ -22,6 +22,8 @@ interface HoleViewProps {
   onEnter: (id: string) => void;
   onLeave: () => void;
   onSelect: (id: string) => void;
+  /** S2-2：placement 模式下点击孔不拦截事件，冒泡到 SVG 完成元件放置 */
+  placementActive?: boolean;
 }
 
 const HOLE_R = 5.2;
@@ -36,6 +38,7 @@ function HoleViewInner({
   onEnter,
   onLeave,
   onSelect,
+  placementActive = false,
 }: HoleViewProps) {
   const baseFill = powerTint === '3v3' ? '#7a2a2a' : powerTint === 'gnd' ? '#26324d' : '#20242c';
   const stroke =
@@ -76,6 +79,8 @@ function HoleViewInner({
       onMouseEnter={() => onEnter(id)}
       onMouseLeave={onLeave}
       onMouseDown={(e) => {
+        // placement 模式：不拦截、不连线，让事件冒泡到 SVG 完成元件放置
+        if (placementActive) return;
         // 仅左键用于连线；右键不触发连线、不改变 pending
         if (e.button !== 0) return;
         e.stopPropagation();

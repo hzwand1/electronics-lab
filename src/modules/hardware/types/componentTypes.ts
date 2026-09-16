@@ -9,7 +9,7 @@
  */
 import type { GridPoint } from './hardwareTypes';
 
-/** Stage 2 第一批正式元件类型 */
+/** Stage 2 第一批正式元件类型 + S2-2 UI 验证用 generic 占位元件 */
 export type ComponentType =
   | 'resistor'
   | 'led'
@@ -17,7 +17,9 @@ export type ComponentType =
   | 'switch'
   | 'buzzer'
   | 'power'
-  | 'ground';
+  | 'ground'
+  /** S2-2 专用：UI 架构验证占位元件，不是最终产品中的真实元件 */
+  | 'generic';
 
 /** 元件旋转（教学模型，仅 90° 步进；S2-0 仅定义，渲染留待后续 Slice） */
 export type ComponentRotation = 0 | 90 | 180 | 270;
@@ -45,7 +47,9 @@ export type ComponentConfig =
   | { kind: 'switch' }
   | { kind: 'buzzer' }
   | { kind: 'power' }
-  | { kind: 'ground' };
+  | { kind: 'ground' }
+  /** S2-2 UI 验证用，无电气配置 */
+  | { kind: 'generic' };
 
 /**
  * 元件引脚。
