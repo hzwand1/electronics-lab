@@ -8,9 +8,10 @@ import { BottomPanel } from './components/BottomPanel';
 import { Toasts } from './components/Toasts';
 import { ContextMenu } from './components/ContextMenu';
 import { GpioPlaceholder } from './modules/gpio/view/GpioPlaceholder';
+import { HardwareLab } from './modules/hardware/components/HardwareLab';
 import './app-shell.css';
 
-type ActiveModule = 'logic' | 'gpio';
+type ActiveModule = 'logic' | 'gpio' | 'hardware';
 
 export default function App() {
   const [activeModule, setActiveModule] = useState<ActiveModule>('logic');
@@ -78,6 +79,12 @@ export default function App() {
         >
           GPIO 入门
         </button>
+        <button
+          className={`module-tab ${activeModule === 'hardware' ? 'active' : ''}`}
+          onClick={() => setActiveModule('hardware')}
+        >
+          Hardware Lab
+        </button>
       </div>
 
       {activeModule === 'logic' ? (
@@ -100,8 +107,10 @@ export default function App() {
           <Toasts />
           <ContextMenu />
         </>
-      ) : (
+      ) : activeModule === 'gpio' ? (
         <GpioPlaceholder />
+      ) : (
+        <HardwareLab />
       )}
     </div>
   );

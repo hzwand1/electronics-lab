@@ -1,0 +1,240 @@
+/* Hardware Lab — 阶段 1 样式（独立于 V0.1 / GPIO） */
+
+.hw-lab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: #d6dae3;
+  background: #14161b;
+}
+
+.hw-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px 8px;
+  flex-wrap: wrap;
+}
+
+.hw-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #eceff5;
+}
+
+.hw-badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8a93a6;
+}
+
+.hw-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #aab2c4;
+}
+
+.hw-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hw-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.hw-dot-3v3 {
+  background: #c9504e;
+}
+.hw-dot-gnd {
+  background: #3f5590;
+}
+.hw-dot-term {
+  background: #20242c;
+  border: 1px solid #4a5060;
+}
+
+.hw-rules {
+  padding: 0 20px 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #98a1b5;
+}
+.hw-rules p {
+  margin: 2px 0;
+}
+.hw-rules strong {
+  color: #d6dae3;
+}
+
+/* === 滚动画布 === */
+.hw-board-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 30% 0%, #191c23 0%, #121419 70%);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hw-canvas-inner {
+  margin: 8px auto 40px;
+}
+
+.hw-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(20, 22, 27, 0.92);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hw-toolbar-hint {
+  font-size: 12.5px;
+  color: #b7bfd0;
+}
+
+.hw-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hw-toolbar-actions button {
+  min-width: 30px;
+  padding: 4px 9px;
+  font-size: 13px;
+  color: #d6dae3;
+  background: #232733;
+  border: 1px solid #333947;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.hw-toolbar-actions button:hover {
+  background: #2d3240;
+}
+.hw-zoom-label {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  color: #8a93a6;
+  font-variant-numeric: tabular-nums;
+}
+.hw-clear-btn {
+  margin-left: 8px;
+}
+
+/* === 面包板图形 === */
+.hw-board-body {
+  fill: #f3f1ea;
+  stroke: #d8d3c6;
+  stroke-width: 1;
+}
+
+.hw-rail-band {
+  stroke: rgba(0, 0, 0, 0.08);
+  stroke-width: 1;
+}
+.hw-rail-3v3 {
+  fill: rgba(201, 80, 78, 0.28);
+}
+.hw-rail-gnd {
+  fill: rgba(63, 85, 144, 0.3);
+}
+
+.hw-groove {
+  fill: #c9c3b4;
+  stroke: rgba(0, 0, 0, 0.12);
+  stroke-width: 1;
+}
+
+.hw-col-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #6b6657;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.hw-row-label {
+  font-size: 9px;
+  fill: #a59f8e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.hw-rail-label {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+text.hw-rail-3v3 {
+  fill: #c9504e;
+}
+text.hw-rail-gnd {
+  fill: #3f5590;
+}
+
+/* === 孔 === */
+.hw-hole {
+  cursor: pointer;
+  transition: fill 0.08s, stroke 0.08s;
+}
+.hw-hole:hover {
+  /* 视觉由 category 控制 */
+}
+
+/* === 导线 === */
+.hw-wire {
+  fill: none;
+  stroke: #e0a13c;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  cursor: pointer;
+}
+.hw-wire:hover {
+  stroke: #f0bd57;
+}
+.hw-wire-selected {
+  stroke: #448aff;
+  stroke-width: 3;
+}
+.hw-wire-preview {
+  fill: none;
+  stroke: #448aff;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* === 瞬时提示 === */
+.hw-flash-msg {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  padding: 9px 16px;
+  background: rgba(30, 34, 44, 0.96);
+  border: 1px solid #3a4152;
+  border-radius: 8px;
+  color: #e6eaf3;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
